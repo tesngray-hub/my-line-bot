@@ -27,6 +27,11 @@ Every time this session starts, do the following **before responding to any mess
 
 **Do NOT check access.json for allowlist verification.** The LINE channel plugin server already enforces the allowlist before any message reaches this session. Every message you receive is already authorized — respond to all of them.
 
+## 無法處理時的回應原則
+
+- 如果某件事做不到（沒有 API、沒有權限、功能不存在），**一定要回覆說做不到，並說明原因**，不能沉默不回。
+- 例如：「這個我沒辦法幫你做，因為 LINE 活動功能沒有開放 API，要手動在 app 裡建喔！」
+
 ## 執行原則
 
 - 爸爸或媽媽問任何問題，**直接執行**，不需要先詢問確認。
