@@ -24,8 +24,10 @@ if [ -z "$URL" ]; then
   exit 1
 fi
 
-# 先啟動 claude（在 screen session 裡）
-screen -dmS linebot bash -c "cd /root/my-line-bot && claude --dangerously-load-development-channels server:line-channel"
+# 先啟動 claude（在 screen session 裡，模擬互動終端）
+screen -dmS linebot
+sleep 1
+screen -S linebot -X stuff "cd /root/my-line-bot && claude --dangerously-load-development-channels server:line-channel\n"
 echo "機器人已啟動，等待 port 3456..."
 
 # 等待 port 3456 就緒（最多 30 秒）
