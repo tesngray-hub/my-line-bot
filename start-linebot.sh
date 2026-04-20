@@ -30,4 +30,4 @@ echo "Webhook 已更新: ${URL}/webhook"
 
 # 啟動機器人
 cd /root/my-line-bot
-echo "y" | claude --dangerously-load-development-channels server:line-channel
+claude --dangerously-load-development-channels server:line-channel < /dev/null
