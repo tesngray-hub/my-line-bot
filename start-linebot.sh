@@ -24,11 +24,11 @@ if [ -z "$URL" ]; then
   exit 1
 fi
 
-# 先啟動 claude（在 screen session 裡，模擬互動終端）
-screen -dmS linebot
-sleep 1
-screen -S linebot -X stuff "cd /root/my-line-bot && claude --dangerously-load-development-channels server:line-channel\n"
-echo "機器人已啟動，等待 port 3456..."
+# 啟動 claude（用空行觸發初始化，sleep infinity 保持 stdin 開啟）
+cd /root/my-line-bot
+(echo ""; sleep infinity) | claude --dangerously-load-development-channels server:line-channel &
+CLAUDE_PID=$!
+echo "機器人已啟動 (PID: $CLAUDE_PID)，等待 port 3456..."
 
 # 等待 port 3456 就緒（最多 30 秒）
 for i in $(seq 1 30); do
@@ -47,3 +47,7 @@ RESULT=$(curl -s -X PUT https://api.line.me/v2/bot/channel/webhook/endpoint \
   -d "{\"endpoint\": \"${URL}/webhook\"}")
 echo "Webhook 更新結果: $RESULT"
 echo "Webhook URL: ${URL}/webhook"
+
+# 保持腳本運行（監控 claude 程序）
+wait $CLAUDE_PID
+echo "Claude 已退出，服務結束"
