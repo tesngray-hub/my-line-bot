@@ -1,0 +1,10 @@
+# 敏感資訊
+.env
+*.env
+
+# Claude local settings (machine-specific)
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
