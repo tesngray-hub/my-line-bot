@@ -24,7 +24,7 @@ source ~/.claude/channels/line/.env
 curl -s -X PUT https://api.line.me/v2/bot/channel/webhook/endpoint \
   -H "Authorization: Bearer ${LINE_CHANNEL_ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
-  -d "{\"webhook\": \"${URL}/webhook\"}"
+  -d "{\"webhookEndpoint\": \"${URL}/webhook\"}"
 echo ""
 echo "Webhook 已更新: ${URL}/webhook"
 
