@@ -24,6 +24,9 @@ if [ -z "$URL" ]; then
   exit 1
 fi
 
+# 等 cloudflared 完全就緒
+sleep 5
+
 # 在 tmux 裡啟動 claude（有完整 TTY）
 tmux new-session -d -s linebot "cd /root/my-line-bot && claude --dangerously-load-development-channels server:line-channel"
 echo "機器人已在 tmux session 啟動，等待 port 3456（最多 120 秒）..."
