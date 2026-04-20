@@ -24,15 +24,24 @@ if [ -z "$URL" ]; then
   exit 1
 fi
 
-# 自動更新 LINE webhook
+# 先啟動 claude（在 screen session 裡）
+screen -dmS linebot bash -c "cd /root/my-line-bot && claude --dangerously-load-development-channels server:line-channel"
+echo "機器人已啟動，等待 port 3456..."
+
+# 等待 port 3456 就緒（最多 30 秒）
+for i in $(seq 1 30); do
+  if ss -tlnp | grep -q 3456; then
+    echo "Port 3456 就緒"
+    break
+  fi
+  sleep 1
+done
+
+# 更新 LINE webhook
 source ~/.claude/channels/line/.env
-curl -s -X PUT https://api.line.me/v2/bot/channel/webhook/endpoint \
+RESULT=$(curl -s -X PUT https://api.line.me/v2/bot/channel/webhook/endpoint \
   -H "Authorization: Bearer ${LINE_CHANNEL_ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
-  -d "{\"endpoint\": \"${URL}/webhook\"}"
-echo ""
-echo "Webhook 已更新: ${URL}/webhook"
-
-# 在 screen session 裡啟動 claude（有 TTY）
-screen -dmS linebot bash -c "cd /root/my-line-bot && claude --dangerously-load-development-channels server:line-channel"
-echo "機器人已在 screen session 'linebot' 啟動"
+  -d "{\"endpoint\": \"${URL}/webhook\"}")
+echo "Webhook 更新結果: $RESULT"
+echo "Webhook URL: ${URL}/webhook"
