@@ -60,6 +60,9 @@ for attempt in 1 2 3; do
   tmux new-session -d -s linebot -x 220 -y 50
   sleep 1
   tmux send-keys -t linebot "cd /root/my-line-bot && claude --dangerously-load-development-channels server:line-channel" Enter
+  # 自動確認 "I am using this for local development" 提示
+  sleep 4
+  tmux send-keys -t linebot "1" Enter
 
   # 等待 port 3456 就緒（最多 90 秒）
   echo "等待 port 3456..."
