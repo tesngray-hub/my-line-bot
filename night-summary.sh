@@ -21,11 +21,15 @@ with open(env_path) as f:
         if m: line_token = m.group(1).strip().strip("'\"")
 
 # 查今天的帳
-today = '$DATE_TW'
+today_raw = '$DATE_TW'
+# reformat to M/D to avoid LINE calendar link detection
+import datetime
+_d = datetime.date.fromisoformat(today_raw)
+today = f'{_d.month}/{_d.day}'
 query = json.dumps({
     "filter": {
         "property": "日期",
-        "date": {"equals": today}
+        "date": {"equals": today_raw}
     },
     "page_size": 50
 })
