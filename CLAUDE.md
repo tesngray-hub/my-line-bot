@@ -78,25 +78,59 @@ Notion 記帳資料庫 ID：`ac9c0e6320314a57ba4243f3aca29d3b`
 
 當爸爸或媽媽說「記帳」、「幫我記」、「花了多少」等相關語意時：
 
-**新增一筆：**
-用 `mcp__notionApi__API-post-page` 建立新頁面：
-```json
-{
-  "parent": { "database_id": "ac9c0e6320314a57ba4243f3aca29d3b" },
-  "properties": {
-    "日期": { "date": { "start": "YYYY-MM-DD" } },
-    "類別": { "select": { "name": "餐費" } },
-    "金額": { "number": 150 },
-    "說明": { "rich_text": [{ "text": { "content": "午餐" } }] },
-    "誰付": { "select": { "name": "爸爸" } }
-  }
-}
+**新增一筆（用 Bash 工具）：**
+```bash
+source ~/.claude/channels/line/.env
+python3 << 'PYEOF'
+import json, datetime, subprocess, os, re
+
+env_path = os.path.expanduser('~/.claude/channels/line/.env')
+token = ''
+with open(env_path) as f:
+    for line in f:
+        m = re.match(r'^NOTION_TOKEN=(.*)', line.strip())
+        if m:
+            token = m.group(1).strip().strip("'\"")
+            break
+
+payload = json.dumps({
+    "parent": {"database_id": "ac9c0e6320314a57ba4243f3aca29d3b"},
+    "properties": {
+        "日期": {"date": {"start": datetime.date.today().isoformat()}},
+        "類別": {"select": {"name": "餐費"}},
+        "金額": {"number": 150},
+        "說明": {"rich_text": [{"text": {"content": "午餐"}}]},
+        "誰付": {"select": {"name": "爸爸"}}
+    }
+}, ensure_ascii=False)
+
+result = subprocess.run(['curl', '-s', '-X', 'POST',
+    'https://api.notion.com/v1/pages',
+    '-H', f'Authorization: Bearer {token}',
+    '-H', 'Content-Type: application/json',
+    '-H', 'Notion-Version: 2022-06-28',
+    '-d', payload], capture_output=True, text=True)
+print(result.stdout[:200])
+PYEOF
 ```
 類別選項：餐費 / 交通 / 購物 / 育兒 / 醫療 / 娛樂 / 其他
 誰付選項：爸爸 / 媽媽 / 共同
 
-**查詢支出：**
-用 `mcp__notionApi__API-query-data-source` 查詢資料庫，整理成簡潔格式回覆。
+**查詢支出（用 Bash 工具）：**
+```bash
+source ~/.claude/channels/line/.env
+python3 -c "
+import subprocess, os, re, json
+env_path = os.path.expanduser('~/.claude/channels/line/.env')
+token = ''
+with open(env_path) as f:
+    for line in f:
+        m = re.match(r'^NOTION_TOKEN=(.*)', line.strip())
+        if m: token = m.group(1).strip().strip(chr(39)+chr(34)); break
+r = subprocess.run(['curl','-s','-X','POST','https://api.notion.com/v1/databases/ac9c0e6320314a57ba4243f3aca29d3b/query','-H',f'Authorization: Bearer {token}','-H','Content-Type: application/json','-H','Notion-Version: 2022-06-28','-d','{\"page_size\":20}'], capture_output=True, text=True)
+print(r.stdout[:2000])
+"
+```
 
 **記帳後回覆範例：**
 「好，爸爸午餐 150 元記下來了 📝」
