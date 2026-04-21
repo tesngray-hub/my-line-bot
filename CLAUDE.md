@@ -75,9 +75,63 @@ Every time this session starts, do the following **before responding to any mess
 
 行程 vs 待辦的區別：
 - **行程**：有時間、有地點、會出現在月曆上（看牙醫、去外婆家、聚餐）→ 記行事曆
-- **待辦**：要做的事情、工作任務、提醒自己的事（交報告、填表、準備材料）→ 存記憶即可，不記行事曆
+- **待辦**：要做的事情、工作任務、提醒自己的事（交報告、填表、準備材料）→ 存 Notion 待辦，不記行事曆
 
 判斷有疑問時先確認：「這個要記進行事曆嗎？」
+
+## 待辦事項（Notion）
+
+Notion 待辦資料庫 ID：`a1f6a0549bce49199a1c70080f3caf6d`（Ray's 待辦中心）
+
+當爸爸或媽媽說「記得要...」、「幫我記...」、「我有個待辦」、「明天要交...」等工作或任務類語意時，新增到 Notion 待辦：
+
+**新增待辦（用 Bash 工具）：**
+```bash
+source ~/.claude/channels/line/.env
+python3 << 'PYEOF'
+import json, subprocess, os, re, datetime
+
+env_path = os.path.expanduser('~/.claude/channels/line/.env')
+token = ''
+with open(env_path) as f:
+    for line in f:
+        m = re.match(r'^NOTION_TOKEN=(.*)', line.strip())
+        if m:
+            token = m.group(1).strip().strip("'\"")
+            break
+
+# 填入任務內容（必填）、截止日（可選，格式 YYYY-MM-DD）、優先級（高/中/低，預設中）
+task = '任務名稱'
+due_date = None       # 例如 '2026-05-01'，沒提到就填 None
+priority = '中'       # 高 / 中 / 低
+source = '小跳跳'     # 填說話的人（爸爸／媽媽）
+
+properties = {
+    "任務": {"title": [{"text": {"content": task}}]},
+    "狀態": {"status": {"name": "未開始"}},
+    "優先級": {"select": {"name": priority}},
+    "來源 / 專案": {"rich_text": [{"text": {"content": source}}]}
+}
+if due_date:
+    properties["截止日"] = {"date": {"start": due_date}}
+
+payload = json.dumps({
+    "parent": {"database_id": "a1f6a0549bce49199a1c70080f3caf6d"},
+    "properties": properties
+}, ensure_ascii=False)
+
+result = subprocess.run(['curl', '-s', '-X', 'POST',
+    'https://api.notion.com/v1/pages',
+    '-H', f'Authorization: Bearer {token}',
+    '-H', 'Content-Type: application/json',
+    '-H', 'Notion-Version: 2022-06-28',
+    '-d', payload], capture_output=True, text=True)
+print(result.stdout[:200])
+PYEOF
+```
+
+**記錄後回覆範例：**
+「好，「交海報給老闆」記進待辦清單了 ✅」
 
 **新增行程（用 Bash 工具）：**
 ```bash
