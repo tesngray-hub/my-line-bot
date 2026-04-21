@@ -56,8 +56,10 @@ for attempt in 1 2 3; do
   tmux kill-session -t linebot 2>/dev/null || true
   sleep 2
 
-  # 用 SSH 建立 TTY 啟動 claude
-  tmux new-session -d -s linebot "ssh -i /root/.ssh/bot_key -o StrictHostKeyChecking=no -o BatchMode=yes -tt root@localhost 'cd /root/my-line-bot && claude --dangerously-load-development-channels server:line-channel'"
+  # 建立 tmux session 後用 send-keys 執行（PTY 正確連接，不需要 SSH）
+  tmux new-session -d -s linebot -x 220 -y 50
+  sleep 1
+  tmux send-keys -t linebot "cd /root/my-line-bot && claude --dangerously-load-development-channels server:line-channel" Enter
 
   # 等待 port 3456 就緒（最多 90 秒）
   echo "等待 port 3456..."
