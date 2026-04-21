@@ -56,8 +56,8 @@ for attempt in 1 2 3; do
   tmux kill-session -t linebot 2>/dev/null || true
   sleep 2
 
-  # 用 script 建立假 TTY（比 SSH 更穩定）
-  tmux new-session -d -s linebot "cd /root/my-line-bot && script -q -c 'claude --dangerously-load-development-channels server:line-channel' /dev/null"
+  # 用 SSH 建立 TTY 啟動 claude
+  tmux new-session -d -s linebot "ssh -i /root/.ssh/bot_key -o StrictHostKeyChecking=no -o BatchMode=yes -tt root@localhost 'cd /root/my-line-bot && claude --dangerously-load-development-channels server:line-channel'"
 
   # 等待 port 3456 就緒（最多 90 秒）
   echo "等待 port 3456..."
