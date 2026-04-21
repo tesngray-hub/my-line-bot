@@ -48,7 +48,7 @@ for item in data.get('dates', []):
         continue
 
     delta = (target - today).days
-    if delta < 0 or delta > days_before:
+    if delta not in (0, days_before):
         continue
 
     if delta == 0:
