@@ -3,18 +3,9 @@
 # Taiwan 8:00am = UTC 0:00
 # cron: 0 0 * * * /root/my-line-bot/date-reminder.sh >> /tmp/date-reminder.log 2>&1
 
-DATES_FILE=~/.claude/channels/line/dates.json
-GROUP_ID="C00187729030429695b93114aed6d5bab"
-
-if [ ! -f "$DATES_FILE" ]; then
-  echo "$(date): dates.json not found, skipping"
-  exit 0
-fi
-
-python3 << PYEOF
+python3 << 'PYEOF'
 import json, datetime, subprocess, re, os
 
-# 直接讀 .env 取得 token
 env_path = os.path.expanduser('~/.claude/channels/line/.env')
 token = ''
 with open(env_path) as ef:
@@ -24,27 +15,34 @@ with open(env_path) as ef:
             token = m.group(1).strip().strip("'\"")
             break
 
-group_id = '$GROUP_ID'
-dates_file = '$DATES_FILE'
+# 台灣時間（UTC+8）
+today = (datetime.datetime.utcnow() + datetime.timedelta(hours=8)).date()
+
+dates_file = os.path.expanduser('~/.claude/channels/line/dates.json')
+if not os.path.exists(dates_file):
+    print('dates.json not found, skipping')
+    exit(0)
 
 with open(dates_file) as f:
     data = json.load(f)
 
-today = datetime.date.today() + datetime.timedelta(hours=8)  # UTC+8
+group_id = 'C00187729030429695b93114aed6d5bab'
 
 for item in data.get('dates', []):
     label = item.get('label', '')
     date_str = item.get('date', '')
-    days_before = item.get('remind_days_before', 1)
+    days_before = item.get('remind_days_before', 3)
 
     try:
-        if len(date_str) == 5:  # MM-DD 格式，每年重複
-            target = datetime.date(today.year, int(date_str[:2]), int(date_str[3:]))
+        if len(date_str) == 5:  # MM-DD 每年重複
+            m2, d = int(date_str[:2]), int(date_str[3:])
+            target = datetime.date(today.year, m2, d)
             if target < today:
-                target = datetime.date(today.year + 1, int(date_str[:2]), int(date_str[3:]))
+                target = datetime.date(today.year + 1, m2, d)
         else:
             target = datetime.date.fromisoformat(date_str)
-    except:
+    except Exception as e:
+        print(f'Skip {label}: {e}')
         continue
 
     delta = (target - today).days
@@ -52,17 +50,25 @@ for item in data.get('dates', []):
         continue
 
     if delta == 0:
-        msg = f'今天是【{label}】！🎉 小跳跳提醒爸爸媽媽不要忘記喔～'
+        emoji = '🎂' if '生日' in label else '🎊'
+        msg = f'{emoji} 今天是【{label}】！\n小跳跳提醒爸爸媽媽不要忘記喔～'
     else:
-        msg = f'再 {delta} 天就是【{label}】了！小跳跳先來提醒爸爸媽媽 💕'
+        emoji = '🎂' if '生日' in label else '💕'
+        msg = f'{emoji} 再 {delta} 天就是【{label}】了！\n爸爸媽媽記得提早準備喔～'
 
-    payload = json.dumps({'to': group_id, 'messages': [{'type': 'text', 'text': msg}]}, ensure_ascii=False)
-    subprocess.run(['curl', '-s', '-X', 'POST',
+    payload = json.dumps({
+        'to': group_id,
+        'messages': [{'type': 'text', 'text': msg}]
+    }, ensure_ascii=False)
+
+    r = subprocess.run(['curl', '-s', '-X', 'POST',
         'https://api.line.me/v2/bot/message/push',
         '-H', f'Authorization: Bearer {token}',
         '-H', 'Content-Type: application/json',
-        '-d', payload])
+        '-d', payload], capture_output=True, text=True)
     print(f'Reminded: {label} in {delta} days')
+
+print(f'Done. Today (TW): {today}')
 PYEOF
 
 echo "$(date): date check done"
