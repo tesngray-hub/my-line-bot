@@ -9,12 +9,16 @@ DATE=$(TZ=Asia/Taipei date '+%Y/%m/%d %A')
 MEMORY=$(cat ~/.claude/channels/line/memory.json 2>/dev/null || echo '{}')
 DATES=$(cat ~/.claude/channels/line/dates.json 2>/dev/null || echo '{"dates":[]}')
 
+# 取得桃園天氣（wttr.in，不需要 API key）
+WEATHER=$(curl -s --max-time 5 "wttr.in/桃園?format=%C，%t，體感%f，濕度%h" 2>/dev/null || echo "")
+
 # 用 claude --print 生成早安訊息
 MESSAGE=$(claude --print "你是小跳跳，請用可愛的口吻對爸爸媽媽說早安。
 今天是台灣時間 ${DATE}。
+今天桃園天氣：${WEATHER}
 記憶內容：${MEMORY}
 重要日期：${DATES}
-請生成一則簡短（50字以內）的早安訊息，可以提到今天有什麼特別的事或記憶裡的計畫。只輸出訊息本身，不要加任何說明。" 2>/dev/null)
+請生成一則簡短（60字以內）的早安訊息，包含天氣資訊和今天適合穿什麼，可以提到記憶裡的計畫。只輸出訊息本身，不要加任何說明。" 2>/dev/null)
 
 if [ -z "$MESSAGE" ]; then
   MESSAGE="早安！爸爸媽媽今天也要加油喔 ☀️"

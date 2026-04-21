@@ -98,6 +98,13 @@ RESULT=$(curl -s -X PUT https://api.line.me/v2/bot/channel/webhook/endpoint \
 echo "Webhook 更新結果: $RESULT"
 echo "Webhook URL: ${URL}/webhook"
 
+# 通知群組 bot 重新上線
+source ~/.claude/channels/line/.env
+curl -s -X POST https://api.line.me/v2/bot/message/push \
+  -H "Authorization: Bearer ${LINE_CHANNEL_ACCESS_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"to": "C00187729030429695b93114aed6d5bab", "messages": [{"type": "text", "text": "小跳跳重新上線了！🔄✨\n如果有訊息沒收到，可以重新傳一次喔～"}]}' > /dev/null
+
 # 持續監控 tmux session，掛掉就退出讓 systemd 重啟
 while tmux has-session -t linebot 2>/dev/null; do
   sleep 10
