@@ -1,9 +1,10 @@
 #!/bin/bash
 
-# 清除舊的 session
+# 清除舊的 session 和殘留的 bun 進程
 pkill cloudflared 2>/dev/null || true
 tmux kill-session -t linebot 2>/dev/null || true
-sleep 1
+pkill -f "bun.*server.ts" 2>/dev/null || true
+sleep 2
 
 # 啟動 cloudflared tunnel
 cloudflared tunnel --url http://localhost:3456 --no-autoupdate > /tmp/tunnel.log 2>&1 &
