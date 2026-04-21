@@ -41,6 +41,9 @@ for i in $(seq 1 120); do
   sleep 1
 done
 
+# 等 cloudflared 完全穩定
+sleep 10
+
 # 更新 LINE webhook
 source ~/.claude/channels/line/.env
 RESULT=$(curl -s -X PUT https://api.line.me/v2/bot/channel/webhook/endpoint \
