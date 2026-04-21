@@ -1,5 +1,5 @@
 #!/bin/bash
-# event-reminder.sh - 每天晚上推明天的行程提醒到家庭群組
+# event-reminder.sh - 每天晚上推明天的行程提醒到家庭群組（按人分開列）
 
 python3 << 'PYEOF'
 import json, datetime, subprocess, os, re
@@ -26,10 +26,35 @@ if not tomorrow_events:
 
 d = datetime.date.fromisoformat(tomorrow)
 date_str = f"{d.month}/{d.day}"
-lines = [f"📅 明天 {date_str} 的行程提醒～"]
+
+# 按人分組
+groups = {'爸爸': [], '媽媽': [], '全家': [], '其他': []}
 for e in tomorrow_events:
-    lines.append(f"• {e['title']}（{e.get('by', '小跳跳')}）")
-lines.append("\n爸爸媽媽記得提早準備喔！🌙")
+    by = e.get('by', '其他')
+    if by in groups:
+        groups[by].append(e['title'])
+    else:
+        groups['其他'].append(e['title'])
+
+lines = [f"📅 明天 {date_str} 行程提醒～"]
+if groups['爸爸']:
+    lines.append("\n👨 爸爸：")
+    for t in groups['爸爸']:
+        lines.append(f"• {t}")
+if groups['媽媽']:
+    lines.append("\n👩 媽媽：")
+    for t in groups['媽媽']:
+        lines.append(f"• {t}")
+if groups['全家']:
+    lines.append("\n👨‍👩‍👦 全家：")
+    for t in groups['全家']:
+        lines.append(f"• {t}")
+if groups['其他']:
+    lines.append("\n📌 其他：")
+    for t in groups['其他']:
+        lines.append(f"• {t}")
+
+lines.append("\n記得提早準備喔！🌙")
 msg = "\n".join(lines)
 
 payload = json.dumps({
