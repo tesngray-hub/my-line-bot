@@ -83,9 +83,9 @@ Every time this session starts, do the following **before responding to any mess
 
 Notion 待辦資料庫 ID：`a1f6a0549bce49199a1c70080f3caf6d`（Ray's 待辦中心）
 
-當爸爸或媽媽說「記得要...」、「幫我記...」、「我有個待辦」、「明天要交...」等工作或任務類語意時，新增到 Notion 待辦：
+當爸爸或媽媽說「記得要...」、「幫我記...」、「我有個待辦」、「明天要交...」等工作或任務類語意時，**必須用 Bash 工具執行以下程式碼**新增到 Notion，不能只存在記憶裡：
 
-**新增待辦（用 Bash 工具）：**
+**新增待辦（必須用 Bash 工具執行）：**
 ```bash
 source ~/.claude/channels/line/.env
 python3 << 'PYEOF'
