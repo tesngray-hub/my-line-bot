@@ -1,5 +1,9 @@
 {
   "mcpServers": {
+    "line-channel": {
+      "command": "/root/.bun/bin/bun",
+      "args": ["run", "--cwd", "/root/.claude/plugins/line-channel", "--shell=bun", "--silent", "start"]
+    },
     "playwright": {
       "command": "npx",
       "args": ["-y", "@playwright/mcp"]
