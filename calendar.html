@@ -143,6 +143,44 @@
       background: white; border-radius: 12px;
       padding: 24px 32px; text-align: center; font-size: 15px;
     }
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); display: none;
+      align-items: flex-end; justify-content: center; z-index: 998;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white; border-radius: 16px 16px 0 0;
+      padding: 24px; width: 100%; max-width: 480px;
+    }
+    .modal h3 { font-size: 16px; font-weight: bold; margin-bottom: 16px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { font-size: 13px; color: #666; display: block; margin-bottom: 4px; }
+    .form-group input, .form-group select {
+      width: 100%; border: 1px solid #ddd; border-radius: 8px;
+      padding: 10px 12px; font-size: 15px; outline: none;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: #06C755; }
+    .modal-btns { display: flex; gap: 8px; margin-top: 16px; }
+    .btn-cancel {
+      flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 8px;
+      background: white; font-size: 15px; cursor: pointer;
+    }
+    .btn-save {
+      flex: 2; padding: 12px; border: none; border-radius: 8px;
+      background: #06C755; color: white; font-size: 15px;
+      font-weight: bold; cursor: pointer;
+    }
+    .add-btn {
+      background: rgba(255,255,255,0.3); border: none; color: white;
+      width: 32px; height: 32px; border-radius: 50%; font-size: 22px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      line-height: 1;
+    }
+    .edit-btn {
+      background: none; border: none; color: #ccc;
+      font-size: 14px; cursor: pointer; padding: 4px 6px; flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -154,12 +192,40 @@
     <div style="font-size:11px; opacity:0.8; text-align:center;">家庭行事曆 🏠</div>
   </div>
   <button class="nav-btn" onclick="changeMonth(1)">›</button>
+  <button class="add-btn" onclick="openModal()">+</button>
 </div>
 
 <div class="weekdays">
   <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
 </div>
 <div class="calendar-grid" id="calendarGrid"></div>
+
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnBg(event)">
+  <div class="modal">
+    <h3 id="modalTitle">新增行程</h3>
+    <div class="form-group">
+      <label>日期</label>
+      <input type="date" id="formDate">
+    </div>
+    <div class="form-group">
+      <label>行程內容</label>
+      <input type="text" id="formTitle" placeholder="例：看牙醫、回外婆家">
+    </div>
+    <div class="form-group">
+      <label>誰的行程</label>
+      <select id="formBy">
+        <option value="爸爸">爸爸</option>
+        <option value="媽媽">媽媽</option>
+        <option value="全家">全家</option>
+        <option value="小跳跳">小跳跳</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">取消</button>
+      <button class="btn-save" onclick="saveEvent()">儲存</button>
+    </div>
+  </div>
+</div>
 
 <div class="saving-overlay" id="savingOverlay">
   <div class="saving-box">儲存中...</div>
@@ -263,6 +329,7 @@
             <div class="event-title">${e.title}</div>
             <div class="event-by">由 ${e.by || '小跳跳'} 記錄</div>
           </div>
+          <button class="edit-btn" onclick="editEvent(${globalIdx})">✏️</button>
           <button class="delete-btn" onclick="deleteEvent(${globalIdx})">✕</button>`;
         list.appendChild(item);
       });
@@ -291,6 +358,78 @@
       }
     }
     return cell;
+  }
+
+  let editingIdx = -1;
+
+  function openModal(idx = -1) {
+    editingIdx = idx;
+    const today = new Date().toISOString().split('T')[0];
+    if (idx >= 0) {
+      document.getElementById('modalTitle').textContent = '編輯行程';
+      document.getElementById('formDate').value = allEvents[idx].date;
+      document.getElementById('formTitle').value = allEvents[idx].title;
+      document.getElementById('formBy').value = allEvents[idx].by || '爸爸';
+    } else {
+      document.getElementById('modalTitle').textContent = '新增行程';
+      document.getElementById('formDate').value = today;
+      document.getElementById('formTitle').value = '';
+      document.getElementById('formBy').value = '全家';
+    }
+    document.getElementById('modalOverlay').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('modalOverlay').classList.remove('open');
+  }
+
+  function closeModalOnBg(e) {
+    if (e.target === document.getElementById('modalOverlay')) closeModal();
+  }
+
+  async function saveEvent() {
+    const date = document.getElementById('formDate').value;
+    const title = document.getElementById('formTitle').value.trim();
+    const by = document.getElementById('formBy').value;
+    if (!date || !title) { alert('請填寫日期和行程內容'); return; }
+
+    closeModal();
+    const overlay = document.getElementById('savingOverlay');
+    overlay.style.display = 'flex';
+
+    try {
+      const meta = await fetch(`https://api.github.com/repos/${REPO}/contents/${EVENTS_PATH}`, {
+        headers: { Authorization: 'token ' + GH_TOKEN }
+      });
+      const metaJson = await meta.json();
+      const sha = metaJson.sha;
+
+      const newEvents = [...allEvents];
+      if (editingIdx >= 0) {
+        newEvents[editingIdx] = { date, title, by };
+      } else {
+        newEvents.push({ date, title, by });
+        newEvents.sort((a, b) => a.date.localeCompare(b.date));
+      }
+
+      const newContent = btoa(unescape(encodeURIComponent(JSON.stringify({ events: newEvents }, null, 2) + '\n')));
+      await fetch(`https://api.github.com/repos/${REPO}/contents/${EVENTS_PATH}`, {
+        method: 'PUT',
+        headers: { Authorization: 'token ' + GH_TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: editingIdx >= 0 ? 'Edit event' : 'Add event', content: newContent, sha })
+      });
+
+      allEvents = newEvents;
+      render();
+    } catch(e) {
+      alert('儲存失敗，請再試一次');
+    } finally {
+      overlay.style.display = 'none';
+    }
+  }
+
+  async function editEvent(idx) {
+    openModal(idx);
   }
 
   async function deleteEvent(idx) {
