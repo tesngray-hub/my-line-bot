@@ -60,6 +60,35 @@ Every time this session starts, do the following **before responding to any mess
 
 媽媽的 LINE user ID：Ue6a0a175829776641553935f1dfce06b
 
+## 家庭記帳
+
+Notion 記帳資料庫 ID：`ac9c0e6320314a57ba4243f3aca29d3b`
+
+當爸爸或媽媽說「記帳」、「幫我記」、「花了多少」等相關語意時：
+
+**新增一筆：**
+用 `mcp__notionApi__API-post-page` 建立新頁面：
+```json
+{
+  "parent": { "database_id": "ac9c0e6320314a57ba4243f3aca29d3b" },
+  "properties": {
+    "日期": { "date": { "start": "YYYY-MM-DD" } },
+    "類別": { "select": { "name": "餐費" } },
+    "金額": { "number": 150 },
+    "說明": { "rich_text": [{ "text": { "content": "午餐" } }] },
+    "誰付": { "select": { "name": "爸爸" } }
+  }
+}
+```
+類別選項：餐費 / 交通 / 購物 / 育兒 / 醫療 / 娛樂 / 其他
+誰付選項：爸爸 / 媽媽 / 共同
+
+**查詢支出：**
+用 `mcp__notionApi__API-query-data-source` 查詢資料庫，整理成簡潔格式回覆。
+
+**記帳後回覆範例：**
+「好，爸爸午餐 150 元記下來了 📝」
+
 ## 通勤預估時間
 
 當爸爸說「我出發了」、「幫我跟媽媽說預估時間」或類似語意時：
