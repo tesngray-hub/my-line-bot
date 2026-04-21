@@ -27,9 +27,10 @@ fi
 # 等 cloudflared 完全就緒
 sleep 5
 
-# 在 tmux 裡啟動 claude（有完整 TTY）
-tmux new-session -d -s linebot "cd /root/my-line-bot && claude --dangerously-load-development-channels server:line-channel"
-echo "機器人已在 tmux session 啟動，等待 port 3456（最多 120 秒）..."
+# 用 SSH 建立真正的 TTY 啟動 claude
+tmux kill-session -t linebot 2>/dev/null || true
+tmux new-session -d -s linebot "ssh -i /root/.ssh/bot_key -o StrictHostKeyChecking=no -t root@localhost 'cd /root/my-line-bot && claude --dangerously-load-development-channels server:line-channel'"
+echo "機器人已啟動，等待 port 3456（最多 120 秒）..."
 
 # 等待 port 3456 就緒（最多 120 秒）
 for i in $(seq 1 120); do
