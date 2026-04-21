@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>家庭行事曆</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, sans-serif; background: #f5f5f5; color: #333; }
+
+    .header {
+      background: #06C755;
+      color: white;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header h1 { font-size: 18px; font-weight: bold; }
+    .nav-btn {
+      background: rgba(255,255,255,0.3);
+      border: none;
+      color: white;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .month-label { font-size: 16px; font-weight: bold; }
+
+    .weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      background: #fff;
+      border-bottom: 1px solid #eee;
+    }
+    .weekdays div {
+      text-align: center;
+      padding: 8px 0;
+      font-size: 12px;
+      color: #888;
+      font-weight: 600;
+    }
+    .weekdays div:first-child { color: #e74c3c; }
+    .weekdays div:last-child { color: #3498db; }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      background: #fff;
+      gap: 1px;
+      background-color: #eee;
+    }
+    .day-cell {
+      background: #fff;
+      min-height: 64px;
+      padding: 4px;
+    }
+    .day-num {
+      font-size: 13px;
+      font-weight: 500;
+      width: 24px; height: 24px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+      margin-bottom: 2px;
+    }
+    .day-cell.today .day-num {
+      background: #06C755;
+      color: white;
+    }
+    .day-cell.sun .day-num { color: #e74c3c; }
+    .day-cell.sat .day-num { color: #3498db; }
+    .day-cell.other-month { background: #fafafa; }
+    .day-cell.other-month .day-num { color: #ccc; }
+
+    .event-dot {
+      font-size: 10px;
+      background: #06C755;
+      color: white;
+      border-radius: 3px;
+      padding: 1px 4px;
+      margin-bottom: 1px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      cursor: pointer;
+    }
+    .event-dot.personal { background: #e74c3c; }
+    .event-dot.other { background: #9b59b6; }
+
+    .events-section {
+      margin: 12px;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .events-section h2 {
+      font-size: 14px;
+      padding: 12px 16px;
+      background: #f9f9f9;
+      border-bottom: 1px solid #eee;
+      color: #555;
+    }
+    .event-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 16px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .event-item:last-child { border-bottom: none; }
+    .event-date-badge {
+      background: #06C755;
+      color: white;
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 12px;
+      font-weight: bold;
+      min-width: 48px;
+      text-align: center;
+      margin-right: 12px;
+      flex-shrink: 0;
+    }
+    .event-info { flex: 1; }
+    .event-title { font-size: 14px; font-weight: 500; }
+    .event-by { font-size: 11px; color: #aaa; margin-top: 2px; }
+    .no-events { text-align: center; padding: 24px; color: #aaa; font-size: 14px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
+  <div>
+    <div class="month-label" id="monthLabel"></div>
+    <div style="font-size:11px; opacity:0.8; text-align:center;">家庭行事曆 🏠</div>
+  </div>
+  <button class="nav-btn" onclick="changeMonth(1)">›</button>
+</div>
+
+<div class="weekdays">
+  <div>日</div><div>一</div><div>二</div><div>三</div><div>四</div><div>五</div><div>六</div>
+</div>
+<div class="calendar-grid" id="calendarGrid"></div>
+
+<div class="events-section">
+  <h2 id="upcomingLabel">本月行程</h2>
+  <div id="eventsList"></div>
+</div>
+
+<script>
+  let currentDate = new Date();
+  let allEvents = [];
+
+  const EVENTS_URL = 'https://raw.githubusercontent.com/tesngray-hub/my-line-bot/main/events.json';
+
+  async function loadEvents() {
+    try {
+      const r = await fetch(EVENTS_URL + '?t=' + Date.now());
+      const data = await r.json();
+      allEvents = data.events || [];
+    } catch(e) {
+      allEvents = [];
+    }
+    render();
+  }
+
+  function changeMonth(dir) {
+    currentDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + dir, 1);
+    render();
+  }
+
+  function render() {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const today = new Date();
+
+    document.getElementById('monthLabel').textContent = `${year}年 ${month + 1}月`;
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+    const grid = document.getElementById('calendarGrid');
+    grid.innerHTML = '';
+
+    const monthEvents = {};
+    allEvents.forEach(e => {
+      const d = new Date(e.date + 'T00:00:00');
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        const key = d.getDate();
+        if (!monthEvents[key]) monthEvents[key] = [];
+        monthEvents[key].push(e);
+      }
+    });
+
+    // prev month days
+    for (let i = firstDay - 1; i >= 0; i--) {
+      const cell = createCell(daysInPrevMonth - i, 'other-month', (firstDay - 1 - i) % 7);
+      grid.appendChild(cell);
+    }
+    // current month days
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dow = (firstDay + d - 1) % 7;
+      const isToday = d === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+      const cell = createCell(d, isToday ? 'today' : '', dow, monthEvents[d] || []);
+      grid.appendChild(cell);
+    }
+    // next month days
+    const total = Math.ceil((firstDay + daysInMonth) / 7) * 7;
+    const remaining = total - firstDay - daysInMonth;
+    for (let d = 1; d <= remaining; d++) {
+      const dow = (firstDay + daysInMonth + d - 1) % 7;
+      const cell = createCell(d, 'other-month', dow);
+      grid.appendChild(cell);
+    }
+
+    // events list
+    const monthList = allEvents
+      .filter(e => { const d = new Date(e.date + 'T00:00:00'); return d.getFullYear() === year && d.getMonth() === month; })
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    const list = document.getElementById('eventsList');
+    document.getElementById('upcomingLabel').textContent = `${month + 1}月行程`;
+    if (monthList.length === 0) {
+      list.innerHTML = '<div class="no-events">這個月還沒有行程 📭</div>';
+    } else {
+      list.innerHTML = monthList.map(e => {
+        const d = new Date(e.date + 'T00:00:00');
+        const label = `${d.getMonth()+1}/${d.getDate()}`;
+        return `<div class="event-item">
+          <div class="event-date-badge">${label}</div>
+          <div class="event-info">
+            <div class="event-title">${e.title}</div>
+            <div class="event-by">由 ${e.by || '小跳跳'} 記錄</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  function createCell(day, cls, dow, events) {
+    const cell = document.createElement('div');
+    cell.className = 'day-cell' + (cls ? ' ' + cls : '') + (dow === 0 ? ' sun' : '') + (dow === 6 ? ' sat' : '');
+    const num = document.createElement('div');
+    num.className = 'day-num';
+    num.textContent = day;
+    cell.appendChild(num);
+    if (events) {
+      events.slice(0, 2).forEach(e => {
+        const dot = document.createElement('div');
+        dot.className = 'event-dot';
+        dot.textContent = e.title;
+        cell.appendChild(dot);
+      });
+      if (events.length > 2) {
+        const more = document.createElement('div');
+        more.style = 'font-size:10px; color:#aaa; padding-left:2px;';
+        more.textContent = `+${events.length - 2}`;
+        cell.appendChild(more);
+      }
+    }
+    return cell;
+  }
+
+  loadEvents();
+</script>
+</body>
+</html>
