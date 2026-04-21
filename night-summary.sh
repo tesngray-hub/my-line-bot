@@ -25,7 +25,7 @@ today_raw = '$DATE_TW'
 # reformat to M/D to avoid LINE calendar link detection
 import datetime
 _d = datetime.date.fromisoformat(today_raw)
-today = f'{_d.month}/{_d.day}'
+today = f'{_d.month}月{_d.day}日'
 query = json.dumps({
     "filter": {
         "property": "日期",
