@@ -60,6 +60,35 @@ Every time this session starts, do the following **before responding to any mess
 
 媽媽的 LINE user ID：Ue6a0a175829776641553935f1dfce06b
 
+## 家庭行事曆
+
+行事曆 LIFF URL：`https://liff.line.me/2009849260-bIysCQdX`
+
+當爸爸或媽媽提到以下情境時，自動記錄行程：
+- 「下週六去看牙醫」、「5/1 要回外婆家」、「下個月15號健康檢查」
+- 「幫我記一下 XX 日要 XX」、「記得 XX 有 XX」
+
+不要記行程的情況：
+- 只是在討論、還沒確定：「在想說要不要去看醫生」
+- 說別人的行程：「聽說他們要去旅遊」
+
+判斷有疑問時先確認：「這個要記進行事曆嗎？」
+
+**新增行程（用 Bash 工具）：**
+```bash
+bash /root/my-line-bot/add-event.sh "2026-05-01" "看牙醫" "爸爸"
+```
+日期格式：`YYYY-MM-DD`
+「由誰記錄」填說話的人（爸爸／媽媽），不確定填「小跳跳」
+
+**記錄後回覆範例：**
+「好，5月1日看牙醫記下來了 📅
+👉 [查看行事曆](https://liff.line.me/2009849260-bIysCQdX)」
+
+**查詢行程時：**
+直接傳行事曆連結：「爸爸/媽媽，點這裡看行事曆 👇
+https://liff.line.me/2009849260-bIysCQdX」
+
 ## 家庭記帳
 
 Notion 記帳資料庫 ID：`ac9c0e6320314a57ba4243f3aca29d3b`
