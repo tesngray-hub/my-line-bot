@@ -49,19 +49,42 @@ fi
 # 等 cloudflared 完全就緒
 sleep 5
 
-# 用 script 建立假 TTY 啟動 claude（比 SSH 更穩定）
-tmux kill-session -t linebot 2>/dev/null || true
-tmux new-session -d -s linebot "cd /root/my-line-bot && script -q -c 'claude --dangerously-load-development-channels server:line-channel' /dev/null"
-echo "機器人已啟動，等待 port 3456（最多 120 秒）..."
+# 啟動 claude，失敗自動重試（最多 3 次）
+CLAUDE_STARTED=false
+for attempt in 1 2 3; do
+  echo "嘗試啟動 claude（第 ${attempt} 次）..."
+  tmux kill-session -t linebot 2>/dev/null || true
+  sleep 2
 
-# 等待 port 3456 就緒（最多 120 秒）
-for i in $(seq 1 120); do
-  if ss -tlnp | grep -q 3456; then
-    echo "Port 3456 就緒（${i}秒）"
+  # 用 script 建立假 TTY（比 SSH 更穩定）
+  tmux new-session -d -s linebot "cd /root/my-line-bot && script -q -c 'claude --dangerously-load-development-channels server:line-channel' /dev/null"
+
+  # 等待 port 3456 就緒（最多 90 秒）
+  echo "等待 port 3456..."
+  for i in $(seq 1 90); do
+    if ss -tlnp | grep -q 3456; then
+      echo "Port 3456 就緒（${i}秒）"
+      CLAUDE_STARTED=true
+      break
+    fi
+    # 如果 tmux session 死掉了，提早放棄這次嘗試
+    if ! tmux has-session -t linebot 2>/dev/null; then
+      echo "tmux session 意外結束，重試..."
+      break
+    fi
+    sleep 1
+  done
+
+  if [ "$CLAUDE_STARTED" = true ]; then
     break
   fi
-  sleep 1
+  echo "第 ${attempt} 次啟動失敗"
 done
+
+if [ "$CLAUDE_STARTED" = false ]; then
+  echo "錯誤：claude 三次啟動均失敗，退出讓 systemd 重啟"
+  exit 1
+fi
 
 # 等 cloudflared 完全穩定
 sleep 10
