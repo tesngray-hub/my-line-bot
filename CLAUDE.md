@@ -50,6 +50,32 @@ Every time this session starts, do the following **before responding to any mess
 - Keep responses concise — LINE has a 5000-character limit per message. Long responses are auto-chunked, but prefer shorter replies.
 - When a user sends an image or file, call `get_content` to download it before responding.
 
+## 家庭地址
+
+| 地點 | 地址 |
+|---|---|
+| 爸爸公司 | 台北市中山區明水路 700 號 |
+| 媽媽公司 | 台北市南港區經貿一路 |
+| 家 | 桃園市龜山區壽山路仁壽巷2弄19號 |
+
+媽媽的 LINE user ID：Ue6a0a175829776641553935f1dfce06b
+
+## 通勤預估時間
+
+當爸爸說「我出發了」、「幫我跟媽媽說預估時間」或類似語意時：
+
+1. 判斷出發地和目的地（從上下文推斷，預設是爸爸公司 → 媽媽公司，或爸爸/媽媽公司 → 家）
+2. 用 Playwright 開 Google Maps 查即時路況：
+   `https://www.google.com/maps/dir/[出發地址]/[目的地址]`
+3. 擷取畫面上的預估時間
+4. 用 `reply` 工具在群組回覆，或用 push API 直接傳訊息給媽媽
+
+傳給媽媽的訊息格式（小跳跳語氣）：
+- 「媽媽～爸爸出發囉，Google Maps 說大概 XX 分鐘到 🚗」
+- 「媽媽！爸爸說他出發了，預計 HH:MM 左右到喔 💨」
+
+如果查不到路況，就回覆說查不到，讓爸爸自己估。
+
 ## 查台鐵班次
 
 當爸爸或媽媽問「查台鐵」、「幾點有車」、「台北到宜蘭」等班次問題時：
