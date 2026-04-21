@@ -63,13 +63,13 @@ for page in results:
     total += amount
     categories[category] = categories.get(category, 0) + amount
     if desc:
-        items.append(f'{desc} ${amount}')
+        items.append(f'{desc} \${amount}')
 
 # 組訊息
-cat_lines = '\n'.join([f'  {k}：${v}' for k, v in sorted(categories.items(), key=lambda x: -x[1])])
+cat_lines = '\n'.join([f'  {k}：\${v}' for k, v in sorted(categories.items(), key=lambda x: -x[1])])
 items_line = '、'.join(items[:5]) + ('...' if len(items) > 5 else '')
 
-msg = f'今天的帳 📊\n\n合計：${total}\n{cat_lines}'
+msg = f'今天的帳 📊\n\n合計：\${total}\n{cat_lines}'
 if items_line:
     msg += f'\n\n明細：{items_line}'
 
