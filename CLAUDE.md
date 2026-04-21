@@ -182,21 +182,86 @@ print(r.stdout[:2000])
 
 ## 查台鐵班次
 
-當爸爸或媽媽問「查台鐵」、「幾點有車」、「台北到宜蘭」等班次問題時：
+當爸爸或媽媽問「查台鐵」、「幾點有車」、「台北到宜蘭」等班次問題時，用 TDX API 查詢（比 Playwright 快且穩定）：
 
-1. 用 Playwright 開啟台鐵時刻表查詢頁：
-   `https://tip.railway.gov.tw/tra-tip-web/tip/tip001/tip112/gobytime`
-2. 填入：出發站、到達站、日期（今天 = 系統日期）、時間
-3. 點查詢，擷取結果中的班次、發車時間、到站時間、行駛時間
-4. 整理成簡潔格式回覆，例如：
-   ```
-   台北→宜蘭 4/21
-   🚂 1001 | 出發 08:00 → 抵達 09:35（1h35m）
-   🚂 1003 | 出發 09:00 → 抵達 10:33（1h33m）
-   ```
-5. 一次最多列出 5 班，問「還有嗎？」再繼續
+**站名對照表（常用）：**
+| 站名 | StationID |
+|---|---|
+| 臺北 | 1000 |
+| 松山 | 0990 |
+| 南港 | 0980 |
+| 宜蘭 | 7190 |
+| 羅東 | 7160 |
+| 花蓮 | 7000 |
 
-站名請對照台鐵官方站名（台北、松山、南港、汐止、八堵、基隆；宜蘭、羅東、花蓮等）。
+**查詢方式（用 Bash 工具）：**
+```bash
+python3 << 'PYEOF'
+import json, subprocess, datetime
+
+env_path = '/root/.claude/channels/line/.env'
+client_id = ''
+client_secret = ''
+with open(env_path) as f:
+    for line in f:
+        line = line.strip()
+        if line.startswith('TDX_CLIENT_ID='): client_id = line.split('=',1)[1].strip("'\"")
+        if line.startswith('TDX_CLIENT_SECRET='): client_secret = line.split('=',1)[1].strip("'\"")
+
+# 取 token
+r = subprocess.run(['curl','-s','-X','POST',
+    'https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token',
+    '-H','Content-Type: application/x-www-form-urlencoded',
+    '-d',f'grant_type=client_credentials&client_id={client_id}&client_secret={client_secret}'],
+    capture_output=True, text=True)
+token = json.loads(r.stdout)['access_token']
+
+# 查指定日期所有班次
+date = datetime.date.today().isoformat()  # 或指定日期 '2026-05-01'
+r2 = subprocess.run(['curl','-s',
+    f'https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/DailyTimetable/TrainDate/{date}?%24format=JSON',
+    '-H', f'Authorization: Bearer {token}'],
+    capture_output=True, text=True)
+trains = json.loads(r2.stdout)
+
+# 篩選出發站→目的站（修改這兩個 ID）
+origin_id = '1000'    # 臺北
+dest_id   = '7190'    # 宜蘭
+after_time = '08:00'  # 幾點之後（可選）
+
+results = []
+for t in trains:
+    stops = t.get('StopTimes', [])
+    dep = next((s for s in stops if s['StationID']==origin_id), None)
+    arr = next((s for s in stops if s['StationID']==dest_id), None)
+    if dep and arr and dep['StopSequence'] < arr['StopSequence']:
+        if dep['DepartureTime'] >= after_time:
+            info = t.get('DailyTrainInfo', {})
+            ttype = info.get('TrainTypeName',{}).get('Zh_tw','')
+            results.append((dep['DepartureTime'], info.get('TrainNo',''), arr['ArrivalTime'], ttype))
+
+results.sort()
+for dep_t, no, arr_t, ttype in results[:5]:
+    # 計算行駛時間
+    d = datetime.datetime.strptime(dep_t,'%H:%M')
+    a = datetime.datetime.strptime(arr_t,'%H:%M')
+    mins = int((a-d).total_seconds()//60)
+    h, m = divmod(mins, 60)
+    dur = f'{h}h{m:02d}m' if h else f'{m}分'
+    print(f'🚂 {no} {ttype} | {dep_t} → {arr_t}（{dur}）')
+print(f'---共找到 {len(results)} 班，顯示最早 5 班')
+PYEOF
+```
+
+回覆格式：
+```
+臺北→宜蘭 4/22 08:00後
+🚂 4006 區間快 | 06:25 → 08:02（1h37m）
+🚂 406 自強 | 06:30 → 07:50（1h20m）
+（共 XX 班，問「還有嗎？」看更多）
+```
+
+一次最多列 5 班，問「還有嗎？」再列下 5 班。
 
 ## 記憶系統
 
