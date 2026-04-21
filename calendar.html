@@ -127,6 +127,22 @@
     .event-title { font-size: 14px; font-weight: 500; }
     .event-by { font-size: 11px; color: #aaa; margin-top: 2px; }
     .no-events { text-align: center; padding: 24px; color: #aaa; font-size: 14px; }
+    .delete-btn {
+      background: none; border: none; color: #ccc;
+      font-size: 18px; cursor: pointer; padding: 4px 8px;
+      flex-shrink: 0; line-height: 1;
+    }
+    .delete-btn:active { color: #e74c3c; }
+    .saving-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4); display: flex;
+      align-items: center; justify-content: center;
+      z-index: 999; display: none;
+    }
+    .saving-box {
+      background: white; border-radius: 12px;
+      padding: 24px 32px; text-align: center; font-size: 15px;
+    }
   </style>
 </head>
 <body>
@@ -145,6 +161,10 @@
 </div>
 <div class="calendar-grid" id="calendarGrid"></div>
 
+<div class="saving-overlay" id="savingOverlay">
+  <div class="saving-box">儲存中...</div>
+</div>
+
 <div class="events-section">
   <h2 id="upcomingLabel">本月行程</h2>
   <div id="eventsList"></div>
@@ -154,7 +174,10 @@
   let currentDate = new Date();
   let allEvents = [];
 
-  const EVENTS_URL = 'https://raw.githubusercontent.com/tesngray-hub/my-line-bot/main/events.json';
+  const REPO = 'tesngray-hub/my-line-bot';
+  const EVENTS_PATH = 'events.json';
+  const GH_TOKEN = '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';
+  const EVENTS_URL = 'https://raw.githubusercontent.com/' + REPO + '/main/' + EVENTS_PATH;
 
   async function loadEvents() {
     try {
@@ -227,17 +250,22 @@
     if (monthList.length === 0) {
       list.innerHTML = '<div class="no-events">這個月還沒有行程 📭</div>';
     } else {
-      list.innerHTML = monthList.map(e => {
+      list.innerHTML = '';
+      monthList.forEach((e, idx) => {
         const d = new Date(e.date + 'T00:00:00');
         const label = `${d.getMonth()+1}/${d.getDate()}`;
-        return `<div class="event-item">
+        const globalIdx = allEvents.indexOf(e);
+        const item = document.createElement('div');
+        item.className = 'event-item';
+        item.innerHTML = `
           <div class="event-date-badge">${label}</div>
           <div class="event-info">
             <div class="event-title">${e.title}</div>
             <div class="event-by">由 ${e.by || '小跳跳'} 記錄</div>
           </div>
-        </div>`;
-      }).join('');
+          <button class="delete-btn" onclick="deleteEvent(${globalIdx})">✕</button>`;
+        list.appendChild(item);
+      });
     }
   }
 
@@ -263,6 +291,39 @@
       }
     }
     return cell;
+  }
+
+  async function deleteEvent(idx) {
+    if (!confirm(`刪除「${allEvents[idx].title}」？`)) return;
+
+    const overlay = document.getElementById('savingOverlay');
+    overlay.style.display = 'flex';
+
+    try {
+      // get current SHA
+      const meta = await fetch(`https://api.github.com/repos/${REPO}/contents/${EVENTS_PATH}`, {
+        headers: { Authorization: 'token ' + GH_TOKEN }
+      });
+      const metaJson = await meta.json();
+      const sha = metaJson.sha;
+
+      // remove event
+      const newEvents = allEvents.filter((_, i) => i !== idx);
+      const newContent = btoa(unescape(encodeURIComponent(JSON.stringify({ events: newEvents }, null, 2) + '\n')));
+
+      await fetch(`https://api.github.com/repos/${REPO}/contents/${EVENTS_PATH}`, {
+        method: 'PUT',
+        headers: { Authorization: 'token ' + GH_TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: 'Delete event', content: newContent, sha })
+      });
+
+      allEvents = newEvents;
+      render();
+    } catch(e) {
+      alert('刪除失敗，請再試一次');
+    } finally {
+      overlay.style.display = 'none';
+    }
   }
 
   loadEvents();
