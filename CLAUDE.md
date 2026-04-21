@@ -417,12 +417,14 @@ with open(env_path) as f:
 content = '今天說的事情'       # 整理成一段話，保留原意
 who = '爸爸'                  # 爸爸 / 媽媽 / 全家
 mood = '😊 開心'              # 😊 開心 / 😌 平靜 / 😔 難過 / 😤 煩躁（從內容推斷）
+today = datetime.date.today().isoformat()
+title = f'{today} {content[:20]}'  # 標題格式：YYYY-MM-DD + 內容前20字
 
 payload = json.dumps({
     "parent": {"database_id": "a560338c920a43dc9742a5b27ff3d550"},
     "properties": {
-        "標題": {"title": [{"text": {"content": content}}]},
-        "日期": {"date": {"start": datetime.date.today().isoformat()}},
+        "標題": {"title": [{"text": {"content": title}}]},
+        "日期": {"date": {"start": today}},
         "誰": {"select": {"name": who}},
         "心情": {"select": {"name": mood}}
     }
