@@ -263,6 +263,53 @@ PYEOF
 
 一次最多列 5 班，問「還有嗎？」再列下 5 班。
 
+## AI 產圖
+
+當爸爸或媽媽說「幫我畫」、「產一張圖」、「畫一個...」時，用 Cloudflare Workers AI（FLUX 模型）產圖並傳到 LINE。
+
+**產圖流程（用 Bash 工具）：**
+```bash
+python3 << 'PYEOF'
+import json, subprocess, base64, os, re
+
+env_path = '/root/.claude/channels/line/.env'
+account_id = ''
+cf_token = ''
+with open(env_path) as f:
+    for line in f:
+        line = line.strip()
+        if line.startswith('CLOUDFLARE_ACCOUNT_ID='): account_id = line.split('=',1)[1].strip("'\"")
+        if line.startswith('CLOUDFLARE_API_TOKEN='): cf_token = line.split('=',1)[1].strip("'\"")
+
+prompt = '這裡填英文 prompt'  # 把用戶的描述翻譯成英文
+
+payload = json.dumps({"prompt": prompt})
+r = subprocess.run(['curl', '-s', '--max-time', '60', '-X', 'POST',
+    f'https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/@cf/black-forest-labs/flux-1-schnell',
+    '-H', f'Authorization: Bearer {cf_token}',
+    '-H', 'Content-Type: application/json',
+    '-d', payload], capture_output=True, text=True, timeout=65)
+
+data = json.loads(r.stdout)
+img_b64 = (data.get('result') or {}).get('image', '')
+if img_b64:
+    img_path = '/root/.claude/channels/line/inbox/generated.png'
+    with open(img_path, 'wb') as f:
+        f.write(base64.b64decode(img_b64))
+    print(f'OK:{img_path}')
+else:
+    print('FAILED:', r.stdout[:200])
+PYEOF
+```
+
+產圖成功後（輸出 `OK:/root/.claude/channels/line/inbox/generated.png`），用 `send_image` 工具傳圖：
+- 傳完後回覆：「爸爸/媽媽，畫好了！✨」
+
+**Prompt 原則：**
+- 把中文描述翻成英文
+- 加上風格描述讓圖更好看，例如：`digital art style, vibrant colors, high quality`
+- 如果用戶沒指定風格，預設加 `cute illustration style`
+
 ## 記憶系統
 
 小跳跳有長期記憶，存在 `~/.claude/channels/line/memory.json`。
