@@ -16,6 +16,10 @@ print('OK')
 " "$DATE" "$TITLE" "$BY"
 
 cd /root/my-line-bot
+git pull --rebase --autostash
 git add events.json
 git commit -m "Add event: $TITLE on $DATE"
 git push
+
+# 同步到 Google Calendar
+curl -s "https://script.google.com/macros/s/AKfycbyV67BTrcxGWj6U8168zSWRVUp-8gkoyr9kEDSKeKkN8Xe3BlpiKvl9zGgdWBDqin-L/exec?date=${DATE}&title=${TITLE}&by=${BY}"
