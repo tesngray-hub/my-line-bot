@@ -385,7 +385,7 @@ fi
 
 ## 家庭日記
 
-Notion 日記資料庫 ID：`JOURNAL_DB_ID_PLACEHOLDER`（家庭日記）
+Notion 日記資料庫 ID：`a560338c920a43dc9742a5b27ff3d550`（家庭日記）
 
 **觸發時機：**
 - 爸爸或媽媽說「寫日記」、「記下來今天」、「日記」
@@ -419,7 +419,7 @@ who = '爸爸'                  # 爸爸 / 媽媽 / 全家
 mood = '😊 開心'              # 😊 開心 / 😌 平靜 / 😔 難過 / 😤 煩躁（從內容推斷）
 
 payload = json.dumps({
-    "parent": {"database_id": "JOURNAL_DB_ID_PLACEHOLDER"},
+    "parent": {"database_id": "a560338c920a43dc9742a5b27ff3d550"},
     "properties": {
         "內容": {"title": [{"text": {"content": content}}]},
         "日期": {"date": {"start": datetime.date.today().isoformat()}},
