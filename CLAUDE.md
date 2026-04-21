@@ -302,8 +302,16 @@ else:
 PYEOF
 ```
 
-產圖成功後（輸出 `OK:/root/.claude/channels/line/inbox/generated.png`），用 `send_image` 工具傳圖：
-- 傳完後回覆：「爸爸/媽媽，畫好了！✨」
+產圖成功後（輸出 `OK:/root/.claude/channels/line/inbox/generated.png`），用 Bash 上傳到 catbox.moe 取得公開 URL，再用 `send_image` 工具傳圖：
+
+```bash
+# 上傳圖片取得公開 URL
+r=$(curl -s -F "reqtype=fileupload" -F "fileToUpload=@/root/.claude/channels/line/inbox/generated.png" https://catbox.moe/user/api.php)
+echo "$r"  # 輸出像 https://files.catbox.moe/xxxxxx.png
+```
+
+拿到 URL 後呼叫 `send_image` 工具，`image_url` 填該 URL，`chat_id` 填對話的 chat_id。
+傳完後回覆：「爸爸/媽媽，畫好了！✨」
 
 **Prompt 原則：**
 - 把中文描述翻成英文
