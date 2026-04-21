@@ -383,6 +383,66 @@ fi
 - 加上風格描述讓圖更好看，例如：`digital art style, vibrant colors, high quality`
 - 如果用戶沒指定風格，預設加 `cute illustration style`
 
+## 家庭日記
+
+Notion 日記資料庫 ID：`JOURNAL_DB_ID_PLACEHOLDER`（家庭日記）
+
+**觸發時機：**
+- 爸爸或媽媽說「寫日記」、「記下來今天」、「日記」
+- 說完一段今天的事情後加「幫我記下來」、「記一下」
+- 小跳跳每晚 9:30 推日記邀請後，爸爸媽媽的回覆（只要說了生活內容，就視為日記）
+
+**不記的情況：**
+- 只是普通聊天、問問題、討論行程
+- 對方沒有描述今天發生的事
+
+**有疑問時先確認：**「這個要記進日記嗎？」
+
+**儲存日記（必須用 Bash 工具執行）：**
+```bash
+source ~/.claude/channels/line/.env
+python3 << 'PYEOF'
+import json, subprocess, os, re, datetime
+
+env_path = os.path.expanduser('~/.claude/channels/line/.env')
+token = ''
+with open(env_path) as f:
+    for line in f:
+        m = re.match(r'^NOTION_TOKEN=(.*)', line.strip())
+        if m:
+            token = m.group(1).strip().strip("'\"")
+            break
+
+# 填入以下資訊
+content = '今天說的事情'       # 整理成一段話，保留原意
+who = '爸爸'                  # 爸爸 / 媽媽 / 全家
+mood = '😊 開心'              # 😊 開心 / 😌 平靜 / 😔 難過 / 😤 煩躁（從內容推斷）
+
+payload = json.dumps({
+    "parent": {"database_id": "JOURNAL_DB_ID_PLACEHOLDER"},
+    "properties": {
+        "內容": {"title": [{"text": {"content": content}}]},
+        "日期": {"date": {"start": datetime.date.today().isoformat()}},
+        "誰": {"select": {"name": who}},
+        "心情": {"select": {"name": mood}}
+    }
+}, ensure_ascii=False)
+
+result = subprocess.run(['curl', '-s', '-X', 'POST',
+    'https://api.notion.com/v1/pages',
+    '-H', f'Authorization: Bearer {token}',
+    '-H', 'Content-Type: application/json',
+    '-H', 'Notion-Version: 2022-06-28',
+    '-d', payload], capture_output=True, text=True)
+print(result.stdout[:300])
+PYEOF
+```
+
+**記錄後回覆範例：**
+- 「好，今天的日記記下來了 📔 爸爸今天辛苦了！」
+- 「記住了～媽媽今天真的很棒 🌸」
+- 回覆要帶一點溫暖的呼應，不要只說「記下來了」
+
 ## 記憶系統
 
 小跳跳有長期記憶，存在 `~/.claude/channels/line/memory.json`。
