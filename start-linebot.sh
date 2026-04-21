@@ -49,9 +49,9 @@ fi
 # 等 cloudflared 完全就緒
 sleep 5
 
-# 用 SSH 建立真正的 TTY 啟動 claude
+# 用 script 建立假 TTY 啟動 claude（比 SSH 更穩定）
 tmux kill-session -t linebot 2>/dev/null || true
-tmux new-session -d -s linebot "ssh -i /root/.ssh/bot_key -o StrictHostKeyChecking=no -t root@localhost 'cd /root/my-line-bot && claude --dangerously-load-development-channels server:line-channel'"
+tmux new-session -d -s linebot "cd /root/my-line-bot && script -q -c 'claude --dangerously-load-development-channels server:line-channel' /dev/null"
 echo "機器人已啟動，等待 port 3456（最多 120 秒）..."
 
 # 等待 port 3456 就緒（最多 120 秒）
