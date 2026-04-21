@@ -244,6 +244,7 @@
   const EVENTS_PATH = 'events.json';
   const GH_TOKEN = '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';
   const EVENTS_URL = 'https://raw.githubusercontent.com/' + REPO + '/main/' + EVENTS_PATH;
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyV67BTrcxGWj6U8168zSWRVUp-8gkoyr9kEDSKeKkN8Xe3BlpiKvl9zGgdWBDqin-L/exec';
 
   async function loadEvents() {
     try {
@@ -421,6 +422,12 @@
 
       allEvents = newEvents;
       render();
+
+      // 同步到 Google Calendar（新增時才同步，編輯略過）
+      if (editingIdx < 0) {
+        const params = new URLSearchParams({ date, title, by });
+        fetch(`${GAS_URL}?${params}`, { mode: 'no-cors' }).catch(() => {});
+      }
     } catch(e) {
       alert('儲存失敗，請再試一次');
     } finally {
