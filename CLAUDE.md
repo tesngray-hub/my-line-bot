@@ -135,7 +135,7 @@ PYEOF
 
 **新增行程（用 Bash 工具）：**
 ```bash
-bash /root/my-line-bot/add-event.sh "2026-05-01" "看牙醫" "爸爸"
+bash ~/my-line-bot/add-event.sh "2026-05-01" "看牙醫" "爸爸"
 ```
 日期格式：`YYYY-MM-DD`
 「由誰記錄」填說話的人（爸爸／媽媽），不確定填「小跳跳」
@@ -256,9 +256,9 @@ print(r.stdout[:2000])
 **查詢方式（用 Bash 工具）：**
 ```bash
 python3 << 'PYEOF'
-import json, subprocess, datetime
+import json, subprocess, datetime, os
 
-env_path = '/root/.claude/channels/line/.env'
+env_path = os.path.expanduser('~/.claude/channels/line/.env')
 client_id = ''
 client_secret = ''
 with open(env_path) as f:
@@ -331,7 +331,8 @@ PYEOF
 python3 << 'PYEOF'
 import json, subprocess, base64, os, re
 
-env_path = '/root/.claude/channels/line/.env'
+env_path = os.path.expanduser('~/.claude/channels/line/.env')
+
 account_id = ''
 cf_token = ''
 with open(env_path) as f:
@@ -352,7 +353,7 @@ r = subprocess.run(['curl', '-s', '--max-time', '60', '-X', 'POST',
 data = json.loads(r.stdout)
 img_b64 = (data.get('result') or {}).get('image', '')
 if img_b64:
-    img_path = '/root/.claude/channels/line/inbox/generated.png'
+    img_path = os.path.expanduser('~/.claude/channels/line/inbox/generated.png')
     with open(img_path, 'wb') as f:
         f.write(base64.b64decode(img_b64))
     print(f'OK:{img_path}')
@@ -361,11 +362,11 @@ else:
 PYEOF
 ```
 
-產圖成功後（輸出 `OK:/root/.claude/channels/line/inbox/generated.png`），從本機 image host tunnel 取得公開 URL，再用 `send_image` 工具傳圖：
+產圖成功後，從本機 image host tunnel 取得公開 URL，再用 `send_image` 工具傳圖：
 
 ```bash
 # 取得公開圖片 URL（從本機 tunnel）
-IMG_HOST=$(cat /tmp/image_host_url.txt 2>/dev/null | tr -d '[:space:]')
+IMG_HOST=$(cat ~/.claude/channels/line/image_host_url.txt 2>/dev/null | tr -d '[:space:]')
 if [ -n "$IMG_HOST" ]; then
   echo "IMAGE_URL:${IMG_HOST}/generated.png"
 else
@@ -458,8 +459,8 @@ PYEOF
 **怎麼存（用 Bash 工具）：**
 ```bash
 python3 -c "
-import json, datetime
-path = '/root/.claude/channels/line/memory.json'
+import json, datetime, os
+path = os.path.expanduser('~/.claude/channels/line/memory.json')
 with open(path) as f: m = json.load(f)
 m['memories'].append({'date': datetime.date.today().isoformat(), 'content': '這裡填記憶內容', 'by': '爸爸或媽媽'})
 with open(path, 'w') as f: json.dump(m, f, ensure_ascii=False, indent=2)
@@ -486,10 +487,10 @@ import json, datetime, os, shutil
 # 填入以下資訊
 description = '描述內容'   # 對方說的場合或地點
 who = '爸爸'               # 誰傳的
-src_path = '/root/.claude/channels/line/inbox/downloaded_file'  # get_content 下載的路徑
+src_path = os.path.expanduser('~/.claude/channels/line/inbox/downloaded_file')  # get_content 下載的路徑
 
 # 建立 photos 目錄
-photos_dir = '/root/.claude/channels/line/inbox/photos'
+photos_dir = os.path.expanduser('~/.claude/channels/line/inbox/photos')
 os.makedirs(photos_dir, exist_ok=True)
 
 # 用時間戳命名
@@ -500,7 +501,7 @@ dst = os.path.join(photos_dir, filename)
 shutil.copy(src_path, dst)
 
 # 更新索引
-index_path = '/root/.claude/channels/line/photos-index.json'
+index_path = os.path.expanduser('~/.claude/channels/line/photos-index.json')
 if os.path.exists(index_path):
     with open(index_path) as f:
         index = json.load(f)
@@ -527,7 +528,7 @@ PYEOF
 ```bash
 python3 -c "
 import json, os
-index_path = '/root/.claude/channels/line/photos-index.json'
+index_path = os.path.expanduser('~/.claude/channels/line/photos-index.json')
 if not os.path.exists(index_path):
     print('no photos')
 else:
@@ -540,7 +541,7 @@ else:
 
 找到後用 image host tunnel 傳圖片：
 ```bash
-IMG_HOST=$(cat /tmp/image_host_url.txt | tr -d '[:space:]')
+IMG_HOST=$(cat ~/.claude/channels/line/image_host_url.txt | tr -d '[:space:]')
 # send_image 工具傳：${IMG_HOST}/photos/${filename}
 ```
 

@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "line-channel": {
-      "command": "/root/.bun/bin/bun",
-      "args": ["run", "--cwd", "/root/.claude/plugins/line-channel", "--shell=bun", "--silent", "start"]
+      "command": "C:\\Users\\tesng\\.bun\\bin\\bun.exe",
+      "args": ["run", "--cwd", "C:\\Users\\tesng\\.claude\\plugins\\line-channel", "start"]
     },
     "playwright": {
       "command": "npx",
