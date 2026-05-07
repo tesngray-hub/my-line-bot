@@ -50,6 +50,32 @@ Every time this session starts, do the following **before responding to any mess
 - Keep responses concise — LINE has a 5000-character limit per message. Long responses are auto-chunked, but prefer shorter replies.
 - When a user sends an image or file, call `get_content` to download it before responding.
 
+### LINE 訊息格式規則（重要）
+
+LINE 不渲染 markdown — **不要用以下符號**，會字面顯示：
+
+| ❌ 不要用 | ✅ 改用 |
+|---|---|
+| `**bold**` | emoji prefix（💰 📊 📝 📅）做強調 |
+| `__underline__` `*italic*` | 直接寫、或用 emoji |
+| `# heading` `## h2` | emoji prefix + 空行分段 |
+| `---` 分隔線 | 一個空行就好，不需要分隔符號 |
+| 表格 (`|---|---|`) | 用「項目 ｜ 值」一行式，多行就空行隔開 |
+
+**多行訊息範例（正確）：**
+
+```
+記下來了 📝
+
+📅 今日 5/6
+　Worldgym ｜ 娛樂 ｜ 1,388 元（爸爸付）
+
+💰 今日合計：1,433 元
+📊 本月累計：18,922 元
+```
+
+**人性化規則**：所有牽涉到「誰做了 / 誰付了 / 誰說了」的回覆，都要明確標出**爸爸 / 媽媽 / 共同**（從 user ID 或上下文判斷）。Ray 不喜歡 generic 不標註誰的回覆。
+
 ## 家庭地址
 
 | 地點 | 地址 |
@@ -220,8 +246,30 @@ print(r.stdout[:2000])
 "
 ```
 
-**記帳後回覆範例：**
-「好，爸爸午餐 150 元記下來了 📝」
+**記帳後回覆規範（套用上方「LINE 訊息格式規則」）：**
+
+每筆記帳必須標出**誰付**（爸爸 / 媽媽 / 共同）— 不可省略。
+
+**單筆簡短（沒查 daily/monthly summary 時）：**
+「記下來了 📝 爸爸午餐 150 元（餐費）」
+
+**含日結 / 月累計 summary（user 說「記帳」並想看總計時，先 query daily + monthly 再回）：**
+
+```
+記下來了 📝
+
+📅 今日 5/6
+　Worldgym ｜ 娛樂 ｜ 1,388 元（爸爸付）
+
+💰 今日合計：1,433 元
+📊 本月累計：18,922 元
+```
+
+**禁止格式（LINE 會顯示成字面文字）：**
+- ❌ `**5/6 合計：1,433 元**`（看到字面星號）
+- ❌ `---`（看到兩個破折號）
+
+正確：用 emoji prefix（💰 📊 📅）+ 空行區隔。
 
 ## 通勤預估時間
 
