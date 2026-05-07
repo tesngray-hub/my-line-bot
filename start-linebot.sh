@@ -10,41 +10,11 @@ sleep 2
 # 啟動靜態圖片伺服器（port 3457）
 python3 -m http.server 3457 --directory /root/.claude/channels/line/inbox/ > /tmp/fileserver.log 2>&1 &
 
-# 啟動兩條 cloudflared tunnel
-cloudflared tunnel --url http://localhost:3456 --no-autoupdate > /tmp/tunnel.log 2>&1 &
-cloudflared tunnel --url http://localhost:3457 --no-autoupdate > /tmp/tunnel2.log 2>&1 &
-
-# 等待 webhook tunnel URL（最多 30 秒）
-echo "等待 tunnel URL..."
-for i in $(seq 1 30); do
-  URL=$(grep -o 'https://[^[:space:]]*trycloudflare.com' /tmp/tunnel.log | head -1)
-  if [ -n "$URL" ]; then
-    echo "Tunnel URL: $URL"
-    break
-  fi
-  sleep 1
-done
-
-if [ -z "$URL" ]; then
-  echo "錯誤：無法取得 tunnel URL"
-  exit 1
-fi
-
-# 等待 image host tunnel URL（最多 30 秒）
-echo "等待 image host tunnel URL..."
-for i in $(seq 1 30); do
-  IMG_HOST=$(grep -o 'https://[^[:space:]]*trycloudflare.com' /tmp/tunnel2.log | head -1)
-  if [ -n "$IMG_HOST" ]; then
-    echo "Image host URL: $IMG_HOST"
-    echo "$IMG_HOST" > /tmp/image_host_url.txt
-    break
-  fi
-  sleep 1
-done
-
-if [ -z "$IMG_HOST" ]; then
-  echo "警告：無法取得 image host URL，產圖功能可能受影響"
-fi
+# Use named tunnel (kgi-tunnel.service routes family.weixuninvest.com → 3456)
+URL="https://family.weixuninvest.com"
+IMG_HOST=""
+echo "$(date) using named tunnel: $URL"
+echo "$URL" > /tmp/named_tunnel_url.txt
 
 # 等 cloudflared 完全就緒
 sleep 5
@@ -110,8 +80,26 @@ curl -s -X POST https://api.line.me/v2/bot/message/push \
   -H "Content-Type: application/json" \
   -d '{"to": "C00187729030429695b93114aed6d5bab", "messages": [{"type": "text", "text": "小跳跳重新上線了！🔄✨\n如果有訊息沒收到，可以重新傳一次喔～"}]}' > /dev/null
 
-# 持續監控 tmux session，掛掉就退出讓 systemd 重啟
-while tmux has-session -t linebot 2>/dev/null; do
+# Claude 5 分鐘崩 → 內部重啟 tmux，不讓 systemd 整個重啟
+while true; do
+  if ! tmux has-session -t linebot 2>/dev/null; then
+    echo "$(date) tmux died, restarting Claude inside loop"
+    tmux new-session -d -s linebot -x 220 -y 50
+    sleep 1
+    tmux send-keys -t linebot "cd /root/my-line-bot && claude --dangerously-load-development-channels server:line-channel" Enter
+    sleep 4
+    tmux send-keys -t linebot "1" Enter
+    # 等 port 3456 起來
+    for i in $(seq 1 60); do
+      ss -tlnp | grep -q 3456 && break
+      sleep 1
+    done
+    if ss -tlnp | grep -q 3456; then
+      echo "$(date) bun re-up after Claude crash"
+    else
+      echo "$(date) bun failed to restart, exiting for systemd"
+      exit 1
+    fi
+  fi
   sleep 10
 done
-echo "tmux session 結束，服務退出"

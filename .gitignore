@@ -8,3 +8,7 @@
 # OS
 .DS_Store
 Thumbs.db
+
+# Server-side artifacts
+*.bak
+.playwright-mcp/

@@ -619,3 +619,26 @@ IMG_HOST=$(cat ~/.claude/channels/line/image_host_url.txt | tr -d '[:space:]')
 | `~/.claude/channels/line/history.log` | Rolling log of all received messages |
 | `~/.claude/channels/line/inbox/` | Downloaded media files |
 | `~/.claude/channels/line/unknown-groups.log` | Group IDs seen but not yet in access.json |
+
+---
+
+## /usage 指令支援（新加）
+
+當爸爸或媽媽輸入「/usage」「/用量」「/cost」「額度」這類詢問時：
+
+1. 執行 bash 查 LINE 額度（小跳跳專屬 OA token）：
+
+```bash
+source ~/.claude/channels/line/.env
+USED=$(curl -s -H "Authorization: Bearer $LINE_CHANNEL_ACCESS_TOKEN" \
+  https://api.line.me/v2/bot/message/quota/consumption | python3 -c "import sys,json;print(json.load(sys.stdin)[\"totalUsage\"])")
+QUOTA=$(curl -s -H "Authorization: Bearer $LINE_CHANNEL_ACCESS_TOKEN" \
+  https://api.line.me/v2/bot/message/quota | python3 -c "import sys,json;print(json.load(sys.stdin).get(\"value\",200))")
+echo "LINE 已用 $USED / $QUOTA"
+```
+
+2. 用小跳跳的口氣回（保留兒子人設）：「爸爸～我幫你查好了！這個月 LINE 用了 X / 200 則，剩 Y 則喔～💌」
+
+3. 提醒：Anthropic API 的成本要看小債債那邊（小債債才有 cost log），小跳跳目前只能看 LINE 額度。
+
+**不要改其他既有功能** — 只是加一個新指令。

@@ -9,7 +9,7 @@ DATE=$(TZ=Asia/Taipei date '+%Y/%m/%d %A')
 MEMORY=$(cat ~/.claude/channels/line/memory.json 2>/dev/null || echo '{"memories":[]}')
 HISTORY=$(tail -30 ~/.claude/channels/line/history.log 2>/dev/null || echo '')
 
-QUESTION=$(claude --print "你是小跳跳，爸爸媽媽的孩子。
+PROMPT="你是小跳跳，爸爸媽媽的孩子。
 
 今天是台灣時間 ${DATE}。
 最近的對話：${HISTORY}
@@ -25,20 +25,16 @@ QUESTION=$(claude --print "你是小跳跳，爸爸媽媽的孩子。
 - 每天不同，不要重複上次問過的
 - 避免太沉重或需要長篇回答的問題
 
-好問題例子：
-- 今天有沒有一個讓你微笑的小時刻？
-- 今天最想感謝誰？
-- 今天有沒有吃到什麼好吃的？
-- 如果今天可以重來一件事，你會重來什麼？
-- 今天最有成就感的一件小事？
-
 請輸出完整的訊息（包含小跳跳的說話方式），格式範例：
 「爸爸媽媽～小跳跳想問你們一個問題 🌙
 今天有沒有一個讓你微笑的小時刻？」
 
-只輸出訊息本身，不要加說明。" 2>/dev/null)
+只輸出訊息本身，不要加說明。"
 
-if [ -z "$QUESTION" ]; then
+QUESTION=$(echo "$PROMPT" | /root/my-line-bot/llm-call.sh 2>>/tmp/daily-question.err)
+
+# Hardened fallback
+if [ -z "$QUESTION" ] || echo "$QUESTION" | grep -qE '(Failed to authenticate|API Error|authentication_error|Invalid)'; then
   QUESTION="爸爸媽媽～小跳跳想問你們一個問題 🌙
 今天有沒有一個讓你微笑的小時刻？"
 fi

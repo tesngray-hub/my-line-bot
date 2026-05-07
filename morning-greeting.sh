@@ -34,8 +34,8 @@ TODAYS_EVENTS=$(jq -r --arg t "$TODAY" \
 # 取得桃園天氣（wttr.in，不需要 API key）
 WEATHER=$(curl -s --max-time 5 "wttr.in/桃園?format=%C，%t，體感%f，濕度%h" 2>/dev/null || echo "")
 
-# 用 claude --print 生成早安訊息
-MESSAGE=$(claude --print "你是小跳跳，請用可愛的口吻對爸爸媽媽說早安。
+# 直接 call Anthropic API（透過 llm-call.sh、取代過期 claude CLI）— 失敗則 MESSAGE 為空 → 走 fallback
+PROMPT="你是小跳跳，請用可愛的口吻對爸爸媽媽說早安。
 
 今天日期：${TODAY_DISPLAY}（${WEEKDAY}）
 今天桃園天氣：${WEATHER}
@@ -46,9 +46,12 @@ MESSAGE=$(claude --print "你是小跳跳，請用可愛的口吻對爸爸媽媽
 1. 『今晚／明天／昨天』這類詞，只能用於「今天的行程」明確列出的事件，不要從背景記憶或自己腦補
 2. 如果「今天的行程」是「（無）」，訊息就不要提任何行程，只講星期、天氣、穿衣
 3. 訊息 60 字以內，必須包含星期幾、天氣、穿衣建議
-4. 只輸出訊息本身，不要加任何說明" 2>/dev/null)
+4. 只輸出訊息本身，不要加任何說明"
 
-if [ -z "$MESSAGE" ]; then
+MESSAGE=$(echo "$PROMPT" | /root/my-line-bot/llm-call.sh 2>>/tmp/morning.err)
+
+# Hardened fallback: empty OR contains error keywords
+if [ -z "$MESSAGE" ] || echo "$MESSAGE" | grep -qE '(Failed to authenticate|API Error|authentication_error|Invalid)'; then
   MESSAGE="早安！爸爸媽媽今天也要加油喔 ☀️"
 fi
 

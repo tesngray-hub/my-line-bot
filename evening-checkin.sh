@@ -9,8 +9,7 @@ MEMORY=$(cat ~/.claude/channels/line/memory.json 2>/dev/null || echo '{"memories
 HISTORY=$(tail -50 ~/.claude/channels/line/history.log 2>/dev/null || echo '')
 DATE=$(TZ=Asia/Taipei date '+%Y/%m/%d %A')
 
-# 用 claude --print 判斷今晚有沒有值得說的事
-RESPONSE=$(claude --print "你是小跳跳，爸爸媽媽的孩子。
+PROMPT="你是小跳跳，爸爸媽媽的孩子。
 
 今天是台灣時間 ${DATE}。
 
@@ -48,11 +47,13 @@ SEND: [訊息內容]
 如果不要，輸出：
 SKIP
 
-訊息要符合小跳跳的語氣，簡短可愛，不超過 80 字。" 2>/dev/null)
+訊息要符合小跳跳的語氣，簡短可愛，不超過 80 字。"
 
-echo "$(date): Claude response: $RESPONSE"
+RESPONSE=$(echo "$PROMPT" | /root/my-line-bot/llm-call.sh 2>>/tmp/evening.err)
 
-# 判斷是否要傳送
+echo "$(date): API response: $RESPONSE"
+
+# 判斷是否要傳送 — 只接受 SEND: 開頭，其他（SKIP / error / empty）都不送
 if echo "$RESPONSE" | grep -q "^SEND:"; then
   MESSAGE=$(echo "$RESPONSE" | sed 's/^SEND: //' | head -1)
   curl -s -X POST https://api.line.me/v2/bot/message/push \
@@ -61,5 +62,5 @@ if echo "$RESPONSE" | grep -q "^SEND:"; then
     -d "{\"to\": \"${GROUP_ID}\", \"messages\": [{\"type\": \"text\", \"text\": $(echo "$MESSAGE" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read().strip()))')}]}"
   echo "$(date): sent evening message"
 else
-  echo "$(date): skipped (SKIP or no response)"
+  echo "$(date): skipped (SKIP / error / empty)"
 fi
