@@ -1,42 +1,39 @@
 #!/bin/bash
-# expense-check.sh - 檢查超過 3 天沒記帳就提醒
+# expense-check.sh - 檢查超過 3 天沒記帳就提醒 (jsonl-based, 5/23 改)
 # cron: 0 12 * * * (UTC 12:00 = 台灣 20:00，每天跑)
 
 python3 << 'PYEOF'
-import json, subprocess, re, datetime
+import json, subprocess, re, datetime, os
 
 env_path = '/root/.claude/channels/line/.env'
 token = ''
-notion_token = ''
 with open(env_path) as f:
     for line in f:
         line = line.strip()
         m = re.match(r'^LINE_CHANNEL_ACCESS_TOKEN=(.*)', line)
         if m: token = m.group(1).strip().strip("'\"")
-        m = re.match(r'^NOTION_TOKEN=(.*)', line)
-        if m: notion_token = m.group(1).strip().strip("'\"")
 
 group_id = 'C00187729030429695b93114aed6d5bab'
 
-# 查最近一筆記帳
-r = subprocess.run(['curl', '-s', '-X', 'POST',
-    'https://api.notion.com/v1/databases/ac9c0e6320314a57ba4243f3aca29d3b/query',
-    '-H', f'Authorization: Bearer {notion_token}',
-    '-H', 'Content-Type: application/json',
-    '-H', 'Notion-Version: 2022-06-28',
-    '-d', '{"sorts":[{"property":"日期","direction":"descending"}],"page_size":1}'],
-    capture_output=True, text=True)
+jsonl_path = '/root/.kgi-state/family-expenses.jsonl'
+if not os.path.exists(jsonl_path):
+    print('No jsonl file')
+    raise SystemExit(0)
 
-data = json.loads(r.stdout)
-results = data.get('results', [])
+last_date_str = ''
+with open(jsonl_path, encoding='utf-8') as f:
+    for line in f:
+        try:
+            row = json.loads(line)
+            d = row.get('date', '')
+            if d and d > last_date_str:
+                last_date_str = d
+        except Exception:
+            continue
 
-if not results:
-    print('No expense records found')
-    exit(0)
-
-last_date_str = results[0]['properties'].get('日期', {}).get('date', {}).get('start', '')
 if not last_date_str:
-    exit(0)
+    print('No expense records found')
+    raise SystemExit(0)
 
 last_date = datetime.date.fromisoformat(last_date_str[:10])
 today = datetime.date.today()

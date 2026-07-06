@@ -31,20 +31,6 @@ TODAYS_EVENTS=$(jq -r --arg t "$TODAY" \
   "$EVENTS_FILE" 2>/dev/null)
 [ -z "$TODAYS_EVENTS" ] && TODAYS_EVENTS="（無）"
 
-# 5/23: 同時讀 reminders.jsonl 抓今日 due reminders、merge 進 TODAYS_EVENTS
-REMINDERS_FILE="/root/.kgi-state/family-reminders.jsonl"
-TODAYS_REMINDERS=""
-if [ -f "$REMINDERS_FILE" ]; then
-  TODAYS_REMINDERS=$(jq -rs --arg t "$TODAY"     '[.[] | select(.due_at? // "" | startswith($t)) | .what] | join("；")'     "$REMINDERS_FILE" 2>/dev/null)
-fi
-if [ -n "$TODAYS_REMINDERS" ]; then
-  if [ "$TODAYS_EVENTS" = "（無）" ]; then
-    TODAYS_EVENTS="$TODAYS_REMINDERS"
-  else
-    TODAYS_EVENTS="$TODAYS_EVENTS；$TODAYS_REMINDERS"
-  fi
-fi
-
 # 取得桃園天氣（wttr.in，不需要 API key）
 WEATHER=$(curl -s --max-time 5 "wttr.in/桃園?format=%C，%t，體感%f，濕度%h" 2>/dev/null || echo "")
 

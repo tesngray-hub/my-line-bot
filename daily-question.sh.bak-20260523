@@ -5,8 +5,7 @@
 
 source ~/.claude/channels/line/.env
 GROUP_ID="C00187729030429695b93114aed6d5bab"
-WD_ZH=("" "週一" "週二" "週三" "週四" "週五" "週六" "週日")
-DATE="$(TZ=Asia/Taipei date '+%Y/%m/%d') ${WD_ZH[$(TZ=Asia/Taipei date '+%u')]}"
+DATE=$(TZ=Asia/Taipei date '+%Y/%m/%d %A')
 MEMORY=$(cat ~/.claude/channels/line/memory.json 2>/dev/null || echo '{"memories":[]}')
 HISTORY=$(tail -30 ~/.claude/channels/line/history.log 2>/dev/null || echo '')
 
