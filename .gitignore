@@ -12,3 +12,4 @@ Thumbs.db
 # Server-side artifacts
 *.bak
 .playwright-mcp/
+*.bak-*
