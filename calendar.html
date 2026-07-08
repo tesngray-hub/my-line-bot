@@ -242,7 +242,8 @@
 
   const REPO = 'tesngray-hub/my-line-bot';
   const EVENTS_PATH = 'events.json';
-  const GH_TOKEN = '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';
+  // 網頁直接寫入已停用（token 不得放前端、舊 token 已作廢）；新增行程請在 LINE 跟小跳跳講
+  const GH_TOKEN = '';
   const EVENTS_URL = 'https://raw.githubusercontent.com/' + REPO + '/main/' + EVENTS_PATH;
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbyV67BTrcxGWj6U8168zSWRVUp-8gkoyr9kEDSKeKkN8Xe3BlpiKvl9zGgdWBDqin-L/exec';
 
@@ -393,6 +394,7 @@
     const title = document.getElementById('formTitle').value.trim();
     const by = document.getElementById('formBy').value;
     if (!date || !title) { alert('請填寫日期和行程內容'); return; }
+    if (!GH_TOKEN) { alert('網頁直接新增/編輯暫停使用中～請在 LINE 跟小跳跳講行程 😊'); return; }
 
     closeModal();
     const overlay = document.getElementById('savingOverlay');
@@ -440,6 +442,7 @@
   }
 
   async function deleteEvent(idx) {
+    if (!GH_TOKEN) { alert('網頁直接刪除暫停使用中～請在 LINE 跟小跳跳講 😊'); return; }
     if (!confirm(`刪除「${allEvents[idx].title}」？`)) return;
 
     const overlay = document.getElementById('savingOverlay');
