@@ -6,7 +6,9 @@
 source ~/.claude/channels/line/.env
 GROUP_ID="C00187729030429695b93114aed6d5bab"
 MEMORY=$(cat ~/.claude/channels/line/memory.json 2>/dev/null || echo '{"memories":[]}')
-HISTORY=$(tail -50 ~/.claude/channels/line/history.log 2>/dev/null || echo '')
+# 10/23 fix: 只取 7 天內的對話（history.log 行首是 UTC ISO 時間戳），舊對話會讓它追問早已結束的旅程
+SINCE=$(date -u -d '7 days ago' '+%Y-%m-%dT')
+HISTORY=$(awk -v d="$SINCE" '$1 ~ /^20[0-9][0-9]-/ {keep = ($1 >= d)} keep' ~/.claude/channels/line/history.log 2>/dev/null | tail -50 || echo '')
 WD_ZH=("" "週一" "週二" "週三" "週四" "週五" "週六" "週日")
 DATE="$(TZ=Asia/Taipei date '+%Y/%m/%d') ${WD_ZH[$(TZ=Asia/Taipei date '+%u')]}"
 
@@ -27,6 +29,8 @@ ${HISTORY}
 - 爸爸或媽媽說過某個計畫（旅遊、購物、工作上的事），但之後沒有再提
 - 有誰說過在煩惱某件事，但後來不知道解決了沒
 - 有個決定說要做，但不確定做了沒
+
+注意：上面的對話紀錄只有最近 7 天。超過 7 天沒再提到的計畫（旅遊、出門、活動等）一律視為已經結束，不要再問「後來怎麼樣」；記憶裡的舊事只當背景，不拿來追問。
 
 閉環問法要自然，像家人在關心，不像在追蹤任務：
 ✓ 「爸爸上次說想去宜蘭，後來有機會嗎？」

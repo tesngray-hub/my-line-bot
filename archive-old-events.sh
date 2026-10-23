@@ -8,6 +8,7 @@
 #   (每週日凌晨執行)
 
 set -e
+set -o pipefail
 
 EVENTS_FILE="/root/my-line-bot/events.json"
 ARCHIVE_FILE="/root/my-line-bot/events-archive.json"
@@ -20,6 +21,16 @@ CUTOFF=$(TZ=Asia/Taipei date -d '30 days ago' '+%Y-%m-%d' 2>/dev/null || \
 
 # 初始化 archive 檔（不存在時）
 [ ! -f "$ARCHIVE_FILE" ] && echo '{"events":[]}' > "$ARCHIVE_FILE"
+
+# 10/23 fix: 先 pull 再 jq（7/12 事故：寫完 events.json 才 pull --autostash，stash 衝突標記被寫進檔案又 commit 上去）
+cd /root/my-line-bot 2>/dev/null || cd "$(dirname "$0")"
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  git pull --rebase --autostash 2>/dev/null || true
+fi
+if grep -q '^<<<<<<<\|^>>>>>>>' "$EVENTS_FILE" || ! jq -e . "$EVENTS_FILE" >/dev/null 2>&1; then
+  echo "$(date): ABORT events.json has conflict markers or invalid JSON; nothing written"
+  exit 1
+fi
 
 # 拆分: keep = 30 天內 + 未來、archive = 超過 30 天
 NEW_KEEP=$(jq --arg cutoff "$CUTOFF" '{events: [.events[] | select(.date >= $cutoff)]}' "$EVENTS_FILE")
@@ -35,7 +46,6 @@ echo "$MERGED_ARCHIVE" > "$ARCHIVE_FILE"
 # git commit (沿用 add-event.sh 的 pattern)
 cd /root/my-line-bot 2>/dev/null || cd "$(dirname "$0")"
 if git rev-parse --git-dir >/dev/null 2>&1; then
-  git pull --rebase --autostash 2>/dev/null || true
   git add events.json events-archive.json
   if git diff --cached --quiet; then
     echo "$(date): no events older than $CUTOFF to archive"
