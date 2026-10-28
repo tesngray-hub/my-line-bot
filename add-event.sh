@@ -4,22 +4,8 @@ DATE="$1"
 TITLE="$2"
 BY="${3:-小跳跳}"
 
-python3 -c "
-import json, sys
-path = '/root/my-line-bot/events.json'
-with open(path) as f:
-    data = json.load(f)
-data['events'].append({'date': sys.argv[1], 'title': sys.argv[2], 'by': sys.argv[3]})
-with open(path, 'w') as f:
-    json.dump(data, f, ensure_ascii=False, indent=2)
-print('OK')
-" "$DATE" "$TITLE" "$BY"
-
-cd /root/my-line-bot
-git pull --rebase --autostash
-git add events.json
-git commit -m "Add event: $TITLE on $DATE"
-git push
+# 10/28 大修 ③：單一寫入口（檔鎖＋pull --ff-only＋原子寫＋commit/push）
+python3 /root/family-bot/family_events.py add "$DATE" "$TITLE" --by "$BY" || exit 1
 
 # 同步到 Google Calendar
 curl -s "https://script.google.com/macros/s/AKfycbyV67BTrcxGWj6U8168zSWRVUp-8gkoyr9kEDSKeKkN8Xe3BlpiKvl9zGgdWBDqin-L/exec?date=${DATE}&title=${TITLE}&by=${BY}"
